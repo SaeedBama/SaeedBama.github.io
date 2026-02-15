@@ -6,276 +6,267 @@
 <title>Turf Booking Verification</title>
 
 <style>
-/* ==== YOUR ORIGINAL STYLES (UNCHANGED) ==== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-}
+* { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
 
 body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    padding: 20px;
+    min-height:100vh;
+    padding:20px;
 }
 
-.container { max-width: 800px; margin: 0 auto; }
-.header { text-align: center; margin-bottom: 30px; color: white; }
-.header h1 { font-size: 2em; margin-bottom: 10px; }
-.header p { font-size: 1.1em; opacity: 0.9; }
+.container { max-width:800px; margin:0 auto; }
+
+.header { text-align:center; color:white; margin-bottom:30px; }
 
 .search-card, .booking-card {
-    background: white;
-    border-radius: 15px;
-    padding: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    background:white;
+    border-radius:15px;
+    padding:30px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom:20px;
 }
 
-.search-card { margin-bottom: 30px; }
+.search-box { display:flex; gap:10px; margin-bottom:10px; }
 
-.search-box { display: flex; gap: 10px; margin-bottom: 15px; }
 .search-box input {
-    flex: 1;
-    padding: 15px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 16px;
+    flex:1;
+    padding:12px;
+    border:2px solid #ddd;
+    border-radius:8px;
 }
+
 .search-box button {
-    padding: 15px 30px;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
+    padding:12px 20px;
+    background:#667eea;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
 }
 
 .error-message {
-    background: #fee;
-    color: #c33;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    display: none;
+    background:#fee;
+    color:#c33;
+    padding:15px;
+    border-radius:10px;
+    display:none;
+    margin-bottom:20px;
 }
 
-.loading {
-    text-align: center;
-    padding: 40px;
-    display: none;
-}
+.loading { display:none; text-align:center; padding:20px; }
 
-.booking-card { display: none; }
+.booking-card { display:none; }
+
+.details-section { margin-bottom:25px; }
+
+.details-section h3 { margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px; }
 
 .detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
+    display:flex;
+    justify-content:space-between;
+    padding:8px 0;
+}
+
+.dates-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+    gap:10px;
+}
+
+.date-item {
+    background:#f1f5f9;
+    padding:8px;
+    border-radius:8px;
+    text-align:center;
 }
 
 .payment-status {
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 0.9em;
+    padding:5px 10px;
+    border-radius:15px;
+    font-weight:bold;
+    font-size:0.9em;
 }
 
-.status-paid { background: #c6f6d5; }
-.status-pending { background: #feebc8; }
+.status-paid { background:#c6f6d5; }
+.status-pending { background:#feebc8; }
+
+.total-amount { font-weight:bold; font-size:1.2em; }
 
 </style>
 </head>
-
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>🏟️ Turf Booking Verification</h1>
-        <p>Scan QR code to verify your booking</p>
-    </div>
 
-    <div class="search-card" id="searchCard">
-        <h2>Manual Entry (Backup)</h2>
-        <div class="search-box">
-            <input type="text" id="bookingId" placeholder="Enter Booking ID">
-            <button onclick="searchBooking()" id="searchBtn">Verify</button>
-        </div>
-    </div>
-
-    <div class="error-message" id="errorMessage"></div>
-
-    <div class="loading" id="loading">
-        <p>Loading booking...</p>
-    </div>
-
-    <div class="booking-card" id="bookingCard">
-        <h2 id="turfName"></h2>
-        <p id="bookingIdDisplay"></p>
-
-        <div class="detail-row">
-            <span>Team:</span>
-            <span id="teamName"></span>
-        </div>
-
-        <div class="detail-row">
-            <span>Time:</span>
-            <span id="time"></span>
-        </div>
-
-        <div class="detail-row">
-            <span>Total:</span>
-            <span id="totalAmount"></span>
-        </div>
-
-        <div class="detail-row">
-            <span>Status:</span>
-            <span id="paymentStatus"></span>
-        </div>
-    </div>
+<div class="header">
+<h1>🏟️ Turf Booking Verification</h1>
+<p>Scan QR code to verify booking</p>
 </div>
 
+<div class="search-card" id="searchCard">
+<h2>Manual Entry (Backup)</h2>
+<div class="search-box">
+<input type="text" id="bookingId" placeholder="Enter Booking ID">
+<button onclick="searchBooking()">Verify</button>
+</div>
+</div>
 
-<!-- ============================= -->
-<!-- 🔥 LOAD FIREBASE SDK FIRST -->
-<!-- ============================= -->
+<div class="error-message" id="errorMessage"></div>
 
+<div class="loading" id="loading">Loading booking details...</div>
+
+<div class="booking-card" id="bookingCard">
+
+<div class="details-section">
+<h3>📋 Booking Info</h3>
+<div class="detail-row"><span>Turf:</span><span id="turfName"></span></div>
+<div class="detail-row"><span>Booking ID:</span><span id="bookingIdDisplay"></span></div>
+<div class="detail-row"><span>Team:</span><span id="teamName"></span></div>
+<div class="detail-row"><span>Ground:</span><span id="groundNumber"></span></div>
+<div class="detail-row"><span>Location:</span><span id="location"></span></div>
+<div class="detail-row"><span>Schedule:</span><span id="schedule"></span></div>
+<div class="detail-row"><span>Time:</span><span id="time"></span></div>
+<div class="detail-row"><span>Duration:</span><span id="duration"></span></div>
+<div class="detail-row"><span>Total Sessions:</span><span id="totalSessions"></span></div>
+</div>
+
+<div class="details-section">
+<h3>📅 Booked Dates</h3>
+<div id="datesContainer" class="dates-grid"></div>
+</div>
+
+<div class="details-section">
+<h3>💰 Payment</h3>
+<div class="detail-row"><span>Total Amount:</span><span id="totalAmount" class="total-amount"></span></div>
+<div class="detail-row"><span>Status:</span><span id="paymentStatus"></span></div>
+<div class="detail-row"><span>Paid Amount:</span><span id="paidAmount"></span></div>
+<div class="detail-row" id="discountRow" style="display:none;">
+<span>Discount:</span><span id="discountSavings"></span>
+</div>
+<div class="detail-row" id="mpesaRow" style="display:none;">
+<span>M-PESA:</span><span id="mpesaReceipt"></span>
+</div>
+<div class="detail-row"><span>Booked On:</span><span id="bookingDate"></span></div>
+</div>
+
+</div>
+</div>
+
+<!-- LOAD FIREBASE FIRST -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
 <script>
-/* ============================= */
-/* 🔥 FIREBASE CONFIG */
-/* ============================= */
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBfqQ7g-6sVESqtDK36CUe1H27WT1H7ZlM",
-    authDomain: "turffootball-796d4.firebaseapp.com",
-    projectId: "turffootball-796d4",
-    storageBucket: "turffootball-796d4.firebasestorage.app",
-    messagingSenderId: "498899007163",
-    appId: "1:498899007163:web:c40910938244d093649b9e"
+apiKey: "AIzaSyBfqQ7g-6sVESqtDK36CUe1H27WT1H7ZlM",
+authDomain: "turffootball-796d4.firebaseapp.com",
+projectId: "turffootball-796d4",
+storageBucket: "turffootball-796d4.firebasestorage.app",
+messagingSenderId: "498899007163",
+appId: "1:498899007163:web:c40910938244d093649b9e"
 };
 
-/* Initialize Firebase */
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ============================= */
-/* UTIL FUNCTIONS */
-/* ============================= */
-
-function getUrlParameter(name) {
-    const params = new URLSearchParams(window.location.search);
-    return params.get(name);
+function getUrlParameter(name){
+const params = new URLSearchParams(window.location.search);
+return params.get(name);
 }
 
-function showError(message) {
-    const el = document.getElementById('errorMessage');
-    el.textContent = message;
-    el.style.display = 'block';
+function showError(msg){
+const el=document.getElementById("errorMessage");
+el.textContent=msg;
+el.style.display="block";
 }
 
-function hideError() {
-    document.getElementById('errorMessage').style.display = 'none';
+function formatDate(timestamp){
+if(!timestamp) return "N/A";
+if(timestamp.toDate){
+return timestamp.toDate().toLocaleDateString("en-GB");
+}
+return new Date(timestamp).toLocaleDateString("en-GB");
 }
 
-function showLoading(show) {
-    document.getElementById('loading').style.display = show ? 'block' : 'none';
+window.addEventListener("DOMContentLoaded", async ()=>{
+const bookingId=getUrlParameter("bookingId");
+if(bookingId){
+document.getElementById("loading").style.display="block";
+await loadBooking(bookingId);
 }
-
-/* ============================= */
-/* AUTO LOAD FROM QR */
-/* ============================= */
-
-window.addEventListener("DOMContentLoaded", async () => {
-
-    const bookingId = getUrlParameter('bookingId');
-
-    if (bookingId) {
-        showLoading(true);
-
-        try {
-            const doc = await db.collection("monthly_bookings")
-                                .doc(bookingId)
-                                .get();
-
-            if (doc.exists) {
-                displayBooking(doc.id, doc.data());
-            } else {
-                showError("Booking not found.");
-            }
-
-        } catch (error) {
-            console.error(error);
-            showError("Error loading booking.");
-        }
-
-        showLoading(false);
-    }
 });
 
-/* ============================= */
-/* MANUAL SEARCH */
-/* ============================= */
-
-async function searchBooking() {
-
-    const bookingId = document.getElementById('bookingId').value.trim();
-
-    if (!bookingId) {
-        showError("Please enter Booking ID.");
-        return;
-    }
-
-    hideError();
-    showLoading(true);
-
-    try {
-        const doc = await db.collection("monthly_bookings")
-                            .doc(bookingId)
-                            .get();
-
-        if (doc.exists) {
-            displayBooking(doc.id, doc.data());
-        } else {
-            showError("Booking not found.");
-        }
-
-    } catch (error) {
-        console.error(error);
-        showError("Error fetching booking.");
-    }
-
-    showLoading(false);
+async function searchBooking(){
+const bookingId=document.getElementById("bookingId").value.trim();
+if(!bookingId){ showError("Enter Booking ID"); return; }
+document.getElementById("loading").style.display="block";
+await loadBooking(bookingId);
 }
 
-/* ============================= */
-/* DISPLAY BOOKING */
-/* ============================= */
+async function loadBooking(id){
+try{
+const doc=await db.collection("monthly_bookings").doc(id).get();
+if(doc.exists){
+displayBooking(doc.id,doc.data());
+}else{
+showError("Booking not found.");
+}
+}catch(e){
+console.error(e);
+showError("Error loading booking.");
+}
+document.getElementById("loading").style.display="none";
+}
 
-function displayBooking(id, data) {
+function displayBooking(id,data){
 
-    document.getElementById("searchCard").style.display = "none";
-    document.getElementById("bookingCard").style.display = "block";
+document.getElementById("searchCard").style.display="none";
+document.getElementById("bookingCard").style.display="block";
 
-    document.getElementById("turfName").textContent = data.turfName || "N/A";
-    document.getElementById("bookingIdDisplay").textContent = "ID: " + id;
-    document.getElementById("teamName").textContent = data.teamName || "N/A";
-    document.getElementById("time").textContent =
-        (data.startTime && data.endTime)
-        ? data.startTime + " - " + data.endTime
-        : "N/A";
+document.getElementById("turfName").textContent=data.turfName||"N/A";
+document.getElementById("bookingIdDisplay").textContent=id;
+document.getElementById("teamName").textContent=data.teamName||"N/A";
+document.getElementById("groundNumber").textContent=data.groundNumber||"N/A";
+document.getElementById("location").textContent=(data.turfCity||"")+" "+(data.turfArea||"");
+document.getElementById("schedule").textContent=data.day?("Every "+data.day):"N/A";
+document.getElementById("time").textContent=(data.startTime&&data.endTime)?data.startTime+" - "+data.endTime:"N/A";
+document.getElementById("duration").textContent=data.durationHours?data.durationHours+" hrs":"N/A";
+document.getElementById("totalSessions").textContent=data.numberOfSessions||"N/A";
 
-    document.getElementById("totalAmount").textContent =
-        "KES " + (data.totalAmount || 0);
+const datesContainer=document.getElementById("datesContainer");
+datesContainer.innerHTML="";
+if(Array.isArray(data.bookingDates)){
+data.bookingDates.forEach(d=>{
+const div=document.createElement("div");
+div.className="date-item";
+div.textContent=formatDate(d);
+datesContainer.appendChild(div);
+});
+}
 
-    const status = data.paymentStatus || "pending";
-    const statusEl = document.getElementById("paymentStatus");
-    statusEl.textContent = status.toUpperCase();
-    statusEl.className =
-        "payment-status " + (status === "paid" ? "status-paid" : "status-pending");
+document.getElementById("totalAmount").textContent="KES "+(data.totalAmount||0);
+document.getElementById("paidAmount").textContent="KES "+(data.paidAmount||0);
+
+const status=data.paymentStatus||"pending";
+const statusEl=document.getElementById("paymentStatus");
+statusEl.textContent=status.toUpperCase();
+statusEl.className="payment-status "+(status==="paid"?"status-paid":"status-pending");
+
+if(data.discountSavings){
+document.getElementById("discountRow").style.display="flex";
+document.getElementById("discountSavings").textContent="KES "+data.discountSavings;
+}
+
+if(data.mpesaReceiptNumber){
+document.getElementById("mpesaRow").style.display="flex";
+document.getElementById("mpesaReceipt").textContent=data.mpesaReceiptNumber;
+}
+
+if(data.createdAt){
+document.getElementById("bookingDate").textContent=formatDate(data.createdAt);
+}
+
 }
 
 </script>
