@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turf Booking Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .search-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .search-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-box button {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-box button:hover {
+            background: #5a67d8;
+        }
+
+        .search-box button:disabled {
+            background: #a0a0a0;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .booking-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .booking-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .booking-header .valid-badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .booking-header h2 {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .booking-header .booking-id {
+            color: #666;
+            font-family: monospace;
+            font-size: 1.1em;
+        }
+
+        .details-section {
+            margin-bottom: 25px;
+        }
+
+        .details-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row .label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-row .value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .dates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .date-item {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .payment-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .status-paid {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-pending {
+            background: #feebc8;
+            color: #744210;
+        }
+
+        .total-amount {
+            font-size: 1.5em;
+            color: #2d3748;
+            font-weight: bold;
+        }
+
+        .discount-badge {
+            background: #fbbf24;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .footer-note {
+            margin-top: 30px;
+            text-align: center;
+            color: #718096;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            .search-box {
+                flex-direction: column;
+            }
+
+            .search-box button {
+                width: 100%;
+            }
+
+            .dates-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🏟️ Turf Booking Verification</h1>
+        <p>Scan QR code or enter Booking ID to verify</p>
+    </div>
+
+    <div class="search-card">
+        <h2>Enter Booking ID</h2>
+        <div class="search-box">
+            <input type="text" id="bookingId" placeholder="e.g., abc123..." value="">
+            <button onclick="searchBooking()" id="searchBtn">Verify Booking</button>
+        </div>
+        <p style="color: #666; font-size: 0.9em;">You can also scan the QR code to auto-fill</p>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Fetching booking details...</p>
+    </div>
+
+    <div class="booking-card" id="bookingCard">
+        <div class="booking-header">
+            <span class="valid-badge">✅ VALID BOOKING</span>
+            <h2 id="turfName"></h2>
+            <div class="booking-id" id="bookingIdDisplay"></div>
+        </div>
+
+        <div class="details-section">
+            <h3>📋 Booking Details</h3>
+            <div class="detail-row">
+                <span class="label">Team Name:</span>
+                <span class="value" id="teamName"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Ground Number:</span>
+                <span class="value" id="groundNumber"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Location:</span>
+                <span class="value" id="location"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Schedule:</span>
+                <span class="value" id="schedule"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Time:</span>
+                <span class="value" id="time"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Duration:</span>
+                <span class="value" id="duration"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Total Sessions:</span>
+                <span class="value" id="totalSessions"></span>
+            </div>
+        </div>
+
+        <div class="details-section">
+            <h3>📅 Booked Dates</h3>
+            <div id="datesContainer" class="dates-grid"></div>
+        </div>
+
+        <div class="details-section">
+            <h3>💰 Payment Details</h3>
+            <div class="detail-row">
+                <span class="label">Total Amount:</span>
+                <span class="value total-amount" id="totalAmount"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Payment Status:</span>
+                <span class="value" id="paymentStatus"></span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Paid Amount:</span>
+                <span class="value" id="paidAmount"></span>
+            </div>
+            <div class="detail-row" id="discountRow" style="display: none;">
+                <span class="label">Discount Savings:</span>
+                <span class="value discount-badge" id="discountSavings"></span>
+            </div>
+            <div class="detail-row" id="mpesaRow" style="display: none;">
+                <span class="label">M-PESA Receipt:</span>
+                <span class="value" id="mpesaReceipt"></span>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <p>This is an official verification from Vinxyirld Turf Management</p>
+            <p id="bookingDate"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Get booking ID from URL if present
+    function getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+// Firebase configuration - UPDATED WITH CORRECT VALUES
+const firebaseConfig = {
+    apiKey: "AIzaSyBfqQ7g-6sVESqtDK36CUe1H27WT1H7ZlM",
+    authDomain: "turffootball-796d4.firebaseapp.com",
+    projectId: "turffootball-796d4",
+    storageBucket: "turffootball-796d4.firebasestorage.app",
+    messagingSenderId: "498899007163",
+    appId: "1:498899007163:web:c40910938244d093649b9e",
+    measurementId: "G-8XTM4300C1"
+};
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Check for booking ID in URL on page load
+   // Check for booking ID in URL on page load
+window.onload = function() {
+    const bookingId = getUrlParameter('bookingId');
+    if (bookingId && bookingId.length === 6 && /^\d+$/.test(bookingId)) {
+        // Valid 6-digit number found in URL
+        document.getElementById('bookingId').value = bookingId;
+
+        // Show loading message
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('searchBtn').disabled = true;
+
+        // Auto-search after a tiny delay
+        setTimeout(function() {
+            searchBooking();
+        }, 300);
+    }
+};
+
+// Update the searchBooking function to handle the loading states better
+async function searchBooking() {
+    const bookingId = document.getElementById('bookingId').value.trim();
+
+    if (!bookingId) {
+        showError('Please enter a Booking ID');
+        return;
+    }
+
+    // Validate it's a 6-digit number
+    if (!/^\d{6}$/.test(bookingId)) {
+        showError('Booking ID must be a 6-digit number');
+        return;
+    }
+
+    // Show loading, hide previous results
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('bookingCard').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('searchBtn').disabled = true;
+
+    try {
+        // Try monthly_bookings first
+        let doc = await db.collection('monthly_bookings').doc(bookingId).get();
+
+        // If not found, try regular bookings
+        if (!doc.exists) {
+            doc = await db.collection('bookings').doc(bookingId).get();
+        }
+
+        if (doc.exists) {
+            displayBooking(doc.id, doc.data());
+        } else {
+            showError('Booking not found. Please check the ID and try again.');
+        }
+    } catch (error) {
+        console.error('Error fetching booking:', error);
+        showError('Error fetching booking details. Please try again.');
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('searchBtn').disabled = false;
+    }
+}
+        try {
+            // Try monthly_bookings first
+            let doc = await db.collection('monthly_bookings').doc(bookingId).get();
+
+            // If not found, try regular bookings
+            if (!doc.exists) {
+                doc = await db.collection('bookings').doc(bookingId).get();
+            }
+
+            if (doc.exists) {
+                displayBooking(doc.id, doc.data());
+            } else {
+                showError('Booking not found. Please check the ID and try again.');
+            }
+        } catch (error) {
+            console.error('Error fetching booking:', error);
+            showError('Error fetching booking details. Please try again.');
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('searchBtn').disabled = false;
+        }
+    }
+
+    function displayBooking(id, data) {
+        // Format dates
+        const formatDate = (timestamp) => {
+            if (!timestamp) return 'N/A';
+            if (timestamp.toDate) {
+                const date = timestamp.toDate();
+                return date.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+            }
+            return timestamp;
+        };
+
+        const formatTime = (time) => {
+            if (!time) return 'N/A';
+            return time;
+        };
+
+        // Basic info
+        document.getElementById('turfName').textContent = data.turfName || 'N/A';
+        document.getElementById('bookingIdDisplay').textContent = `ID: ${id.substring(0, 8).toUpperCase()}`;
+        document.getElementById('teamName').textContent = data.teamName || 'N/A';
+
+        // Ground number
+        const groundNumber = data.groundNumber || 'N/A';
+        document.getElementById('groundNumber').textContent = groundNumber;
+
+        // Location
+        document.getElementById('location').textContent =
+            `${data.turfCity || ''}, ${data.turfArea || ''}`;
+
+        // Schedule
+        if (data.day) {
+            document.getElementById('schedule').textContent = `Every ${data.day}`;
+        } else {
+            document.getElementById('schedule').textContent = 'N/A';
+        }
+
+        // Time
+        if (data.startTime && data.endTime) {
+            document.getElementById('time').textContent = `${data.startTime} - ${data.endTime}`;
+        } else {
+            document.getElementById('time').textContent = 'N/A';
+        }
+
+        // Duration
+        document.getElementById('duration').textContent =
+            data.durationHours ? `${data.durationHours} hours` : 'N/A';
+
+        // Total sessions
+        document.getElementById('totalSessions').textContent =
+            data.numberOfSessions || (data.bookingDates ? data.bookingDates.length : 'N/A');
+
+        // Booked dates
+        const datesContainer = document.getElementById('datesContainer');
+        datesContainer.innerHTML = '';
+
+        if (data.bookingDates) {
+            data.bookingDates.forEach(date => {
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'date-item';
+                dateDiv.textContent = formatDate(date);
+                datesContainer.appendChild(dateDiv);
+            });
+        } else if (data.bookingDateStrings) {
+            data.bookingDateStrings.forEach(dateStr => {
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'date-item';
+                dateDiv.textContent = new Date(dateStr).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                datesContainer.appendChild(dateDiv);
+            });
+        } else {
+            datesContainer.innerHTML = '<p>No dates available</p>';
+        }
+
+        // Payment details
+        document.getElementById('totalAmount').textContent =
+            `KES ${(data.totalAmount || 0).toFixed(2)}`;
+
+        const paymentStatus = data.paymentStatus || 'pending';
+        const statusElement = document.getElementById('paymentStatus');
+        statusElement.innerHTML = `<span class="payment-status ${paymentStatus === 'paid' ? 'status-paid' : 'status-pending'}">${paymentStatus.toUpperCase()}</span>`;
+
+        document.getElementById('paidAmount').textContent =
+            `KES ${(data.paidAmount || data.totalAmount || 0).toFixed(2)}`;
+
+        // Discount
+        if (data.discountSavings && data.discountSavings > 0) {
+            document.getElementById('discountRow').style.display = 'flex';
+            document.getElementById('discountSavings').textContent =
+                `KES ${data.discountSavings.toFixed(2)}`;
+        } else {
+            document.getElementById('discountRow').style.display = 'none';
+        }
+
+        // M-PESA receipt
+        if (data.mpesaReceiptNumber) {
+            document.getElementById('mpesaRow').style.display = 'flex';
+            document.getElementById('mpesaReceipt').textContent = data.mpesaReceiptNumber;
+        } else {
+            document.getElementById('mpesaRow').style.display = 'none';
+        }
+
+        // Booking date
+        if (data.createdAt) {
+            document.getElementById('bookingDate').textContent =
+                `Booked on: ${formatDate(data.createdAt)}`;
+        }
+
+        // Show the booking card
+        document.getElementById('bookingCard').style.display = 'block';
+    }
+
+    function showError(message) {
+        const errorEl = document.getElementById('errorMessage');
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        document.getElementById('bookingCard').style.display = 'none';
+    }
+</script>
+
+<!-- Include Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</body>
+</html>
