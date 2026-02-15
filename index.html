@@ -264,14 +264,14 @@
 <div class="container">
     <div class="header">
         <h1>🏟️ Turf Booking Verification</h1>
-        <p>Scan QR code or enter Booking ID to verify</p>
+        <p>Scan QR code to automatically verify your booking</p>
     </div>
 
-    <div class="search-card">
-        <h2>Enter Booking ID (Manual Backup)</h2>
+    <div class="search-card" id="searchCard">
+        <h2>Manual Entry (Backup)</h2>
         <div class="search-box">
-            <input type="text" id="bookingId" placeholder="e.g., 123456..." value="">
-            <button onclick="searchBooking()" id="searchBtn">Verify Booking</button>
+            <input type="text" id="bookingId" placeholder="Enter 6-digit Booking ID" value="">
+            <button onclick="searchBooking()" id="searchBtn">Verify</button>
         </div>
         <p style="color: #666; font-size: 0.9em;">⬆️ Only use this if QR code scan doesn't work</p>
     </div>
@@ -380,64 +380,55 @@
         return urlParams.get(name);
     }
 
+    // Format date function
+    function formatDate(timestamp) {
+        if (!timestamp) return 'N/A';
+        if (timestamp.toDate) {
+            const date = timestamp.toDate();
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+        return timestamp;
+    }
+
     // Auto-load booking when page loads with bookingId in URL
-    window.onload = function() {
+    window.onload = async function() {
         const bookingId = getUrlParameter('bookingId');
+        console.log("Booking ID from URL:", bookingId);
+        
         if (bookingId) {
-            // Auto-fill the input (for reference)
-            document.getElementById('bookingId').value = bookingId;
-            
             // Show loading immediately
             document.getElementById('loading').style.display = 'block';
-            document.getElementById('searchBtn').disabled = true;
             
-            // Short delay to ensure Firebase is ready
-            setTimeout(() => {
-                // Call search function directly with this booking ID
-                searchBookingWithId(bookingId);
-            }, 500);
+            try {
+                // Get the booking document directly
+                const doc = await db.collection('monthly_bookings').doc(bookingId).get();
+                
+                if (doc.exists) {
+                    console.log("Booking found:", doc.id);
+                    displayBooking(doc.id, doc.data());
+                } else {
+                    console.log("Booking not found in monthly_bookings");
+                    showError('Booking not found. Please try manual entry.');
+                    document.getElementById('loading').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error fetching booking:', error);
+                showError('Error loading booking. Please try manual entry.');
+                document.getElementById('loading').style.display = 'none';
+            }
         }
     };
 
-    // Search with specific ID (for auto-load)
-    async function searchBookingWithId(bookingId) {
-        try {
-            // Try monthly_bookings first
-            let doc = await db.collection('monthly_bookings').doc(bookingId).get();
-
-            // If not found, try regular bookings
-            if (!doc.exists) {
-                doc = await db.collection('bookings').doc(bookingId).get();
-            }
-
-            if (doc.exists) {
-                displayBooking(doc.id, doc.data());
-                document.getElementById('loading').style.display = 'none';
-            } else {
-                showError('Booking not found. Please try manual entry.');
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('searchBtn').disabled = false;
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showError('Error loading booking. Please try manual entry.');
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('searchBtn').disabled = false;
-        }
-    }
-
-    // Manual search function (called by button)
+    // Manual search function
     async function searchBooking() {
         const bookingId = document.getElementById('bookingId').value.trim();
 
         if (!bookingId) {
             showError('Please enter a Booking ID');
-            return;
-        }
-
-        // Validate 6-digit format
-        if (!/^\d{6}$/.test(bookingId)) {
-            showError('Booking ID must be a 6-digit number');
             return;
         }
 
@@ -448,13 +439,8 @@
         document.getElementById('searchBtn').disabled = true;
 
         try {
-            // Try monthly_bookings first
-            let doc = await db.collection('monthly_bookings').doc(bookingId).get();
-
-            // If not found, try regular bookings
-            if (!doc.exists) {
-                doc = await db.collection('bookings').doc(bookingId).get();
-            }
+            // Get the booking document
+            const doc = await db.collection('monthly_bookings').doc(bookingId).get();
 
             if (doc.exists) {
                 displayBooking(doc.id, doc.data());
@@ -472,34 +458,16 @@
 
     // Display booking details
     function displayBooking(id, data) {
-        // Format dates
-        const formatDate = (timestamp) => {
-            if (!timestamp) return 'N/A';
-            if (timestamp.toDate) {
-                const date = timestamp.toDate();
-                return date.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                });
-            }
-            return timestamp;
-        };
-
+        console.log("Displaying booking:", data);
+        
         // Basic info
         document.getElementById('turfName').textContent = data.turfName || 'N/A';
         document.getElementById('bookingIdDisplay').textContent = `ID: ${id}`;
         document.getElementById('teamName').textContent = data.teamName || 'N/A';
-        document.getElementById('groundNumber').textContent = data.groundNumber || 'N/A';
+        document.getElementById('groundNumber').textContent = data.groundNumber || 'Not specified';
         document.getElementById('location').textContent = `${data.turfCity || ''}, ${data.turfArea || ''}`;
         document.getElementById('schedule').textContent = data.day ? `Every ${data.day}` : 'N/A';
-        
-        if (data.startTime && data.endTime) {
-            document.getElementById('time').textContent = `${data.startTime} - ${data.endTime}`;
-        } else {
-            document.getElementById('time').textContent = 'N/A';
-        }
-
+        document.getElementById('time').textContent = data.startTime && data.endTime ? `${data.startTime} - ${data.endTime}` : 'N/A';
         document.getElementById('duration').textContent = data.durationHours ? `${data.durationHours} hours` : 'N/A';
         document.getElementById('totalSessions').textContent = data.numberOfSessions || (data.bookingDates ? data.bookingDates.length : 'N/A');
 
@@ -507,14 +475,14 @@
         const datesContainer = document.getElementById('datesContainer');
         datesContainer.innerHTML = '';
 
-        if (data.bookingDates) {
+        if (data.bookingDates && Array.isArray(data.bookingDates)) {
             data.bookingDates.forEach(date => {
                 const dateDiv = document.createElement('div');
                 dateDiv.className = 'date-item';
                 dateDiv.textContent = formatDate(date);
                 datesContainer.appendChild(dateDiv);
             });
-        } else if (data.bookingDateStrings) {
+        } else if (data.bookingDateStrings && Array.isArray(data.bookingDateStrings)) {
             data.bookingDateStrings.forEach(dateStr => {
                 const dateDiv = document.createElement('div');
                 dateDiv.className = 'date-item';
@@ -548,6 +516,9 @@
         if (data.mpesaReceiptNumber) {
             document.getElementById('mpesaRow').style.display = 'flex';
             document.getElementById('mpesaReceipt').textContent = data.mpesaReceiptNumber;
+        } else if (data.payerPhone) {
+            document.getElementById('mpesaRow').style.display = 'flex';
+            document.getElementById('mpesaReceipt').textContent = `Paid from: ${data.payerPhone}`;
         } else {
             document.getElementById('mpesaRow').style.display = 'none';
         }
@@ -557,10 +528,10 @@
             document.getElementById('bookingDate').textContent = `Booked on: ${formatDate(data.createdAt)}`;
         }
 
-        // Hide loading, show booking card
+        // Hide loading and search card, show booking card
         document.getElementById('loading').style.display = 'none';
+        document.getElementById('searchCard').style.display = 'none';
         document.getElementById('bookingCard').style.display = 'block';
-        document.getElementById('search-card').style.display = 'none'; // Optional: hide search after success
     }
 
     // Show error message
