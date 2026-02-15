@@ -270,7 +270,7 @@
     <div class="search-card">
         <h2>Enter Booking ID</h2>
         <div class="search-box">
-            <input type="text" id="bookingId" placeholder="e.g., abc123..." value="">
+            <input type="text" id="bookingId" placeholder="e.g., 123456..." value="">
             <button onclick="searchBooking()" id="searchBtn">Verify Booking</button>
         </div>
         <p style="color: #666; font-size: 0.9em;">You can also scan the QR code to auto-fill</p>
@@ -365,82 +365,60 @@
         return urlParams.get(name);
     }
 
-// Firebase configuration - UPDATED WITH CORRECT VALUES
-const firebaseConfig = {
-    apiKey: "AIzaSyBfqQ7g-6sVESqtDK36CUe1H27WT1H7ZlM",
-    authDomain: "turffootball-796d4.firebaseapp.com",
-    projectId: "turffootball-796d4",
-    storageBucket: "turffootball-796d4.firebasestorage.app",
-    messagingSenderId: "498899007163",
-    appId: "1:498899007163:web:c40910938244d093649b9e",
-    measurementId: "G-8XTM4300C1"
-};
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBfqQ7g-6sVESqtDK36CUe1H27WT1H7ZlM",
+        authDomain: "turffootball-796d4.firebaseapp.com",
+        projectId: "turffootball-796d4",
+        storageBucket: "turffootball-796d4.firebasestorage.app",
+        messagingSenderId: "498899007163",
+        appId: "1:498899007163:web:c40910938244d093649b9e",
+        measurementId: "G-8XTM4300C1"
+    };
+
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     // Check for booking ID in URL on page load
-   // Check for booking ID in URL on page load
-window.onload = function() {
-    const bookingId = getUrlParameter('bookingId');
-    if (bookingId && bookingId.length === 6 && /^\d+$/.test(bookingId)) {
-        // Valid 6-digit number found in URL
-        document.getElementById('bookingId').value = bookingId;
+    window.onload = function() {
+        const bookingId = getUrlParameter('bookingId');
+        if (bookingId && bookingId.length === 6 && /^\d+$/.test(bookingId)) {
+            // Valid 6-digit number found in URL
+            document.getElementById('bookingId').value = bookingId;
 
-        // Show loading message
+            // Show loading message
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('searchBtn').disabled = true;
+
+            // Auto-search after a short delay to ensure Firebase is ready
+            setTimeout(function() {
+                searchBooking();
+            }, 500);
+        }
+    };
+
+    // Search for booking
+    async function searchBooking() {
+        const bookingId = document.getElementById('bookingId').value.trim();
+
+        if (!bookingId) {
+            showError('Please enter a Booking ID');
+            return;
+        }
+
+        // Validate it's a 6-digit number
+        if (!/^\d{6}$/.test(bookingId)) {
+            showError('Booking ID must be a 6-digit number');
+            return;
+        }
+
+        // Show loading, hide previous results
         document.getElementById('loading').style.display = 'block';
+        document.getElementById('bookingCard').style.display = 'none';
+        document.getElementById('errorMessage').style.display = 'none';
         document.getElementById('searchBtn').disabled = true;
 
-        // Auto-search after a tiny delay
-        setTimeout(function() {
-            searchBooking();
-        }, 300);
-    }
-};
-
-// Update the searchBooking function to handle the loading states better
-async function searchBooking() {
-    const bookingId = document.getElementById('bookingId').value.trim();
-
-    if (!bookingId) {
-        showError('Please enter a Booking ID');
-        return;
-    }
-
-    // Validate it's a 6-digit number
-    if (!/^\d{6}$/.test(bookingId)) {
-        showError('Booking ID must be a 6-digit number');
-        return;
-    }
-
-    // Show loading, hide previous results
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('bookingCard').style.display = 'none';
-    document.getElementById('errorMessage').style.display = 'none';
-    document.getElementById('searchBtn').disabled = true;
-
-    try {
-        // Try monthly_bookings first
-        let doc = await db.collection('monthly_bookings').doc(bookingId).get();
-
-        // If not found, try regular bookings
-        if (!doc.exists) {
-            doc = await db.collection('bookings').doc(bookingId).get();
-        }
-
-        if (doc.exists) {
-            displayBooking(doc.id, doc.data());
-        } else {
-            showError('Booking not found. Please check the ID and try again.');
-        }
-    } catch (error) {
-        console.error('Error fetching booking:', error);
-        showError('Error fetching booking details. Please try again.');
-    } finally {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('searchBtn').disabled = false;
-    }
-}
         try {
             // Try monthly_bookings first
             let doc = await db.collection('monthly_bookings').doc(bookingId).get();
@@ -464,6 +442,7 @@ async function searchBooking() {
         }
     }
 
+    // Display booking details
     function displayBooking(id, data) {
         // Format dates
         const formatDate = (timestamp) => {
@@ -479,30 +458,20 @@ async function searchBooking() {
             return timestamp;
         };
 
-        const formatTime = (time) => {
-            if (!time) return 'N/A';
-            return time;
-        };
-
         // Basic info
         document.getElementById('turfName').textContent = data.turfName || 'N/A';
-        document.getElementById('bookingIdDisplay').textContent = `ID: ${id.substring(0, 8).toUpperCase()}`;
+        document.getElementById('bookingIdDisplay').textContent = `ID: ${id}`;
         document.getElementById('teamName').textContent = data.teamName || 'N/A';
 
         // Ground number
-        const groundNumber = data.groundNumber || 'N/A';
-        document.getElementById('groundNumber').textContent = groundNumber;
+        document.getElementById('groundNumber').textContent = data.groundNumber || 'N/A';
 
         // Location
         document.getElementById('location').textContent =
             `${data.turfCity || ''}, ${data.turfArea || ''}`;
 
         // Schedule
-        if (data.day) {
-            document.getElementById('schedule').textContent = `Every ${data.day}`;
-        } else {
-            document.getElementById('schedule').textContent = 'N/A';
-        }
+        document.getElementById('schedule').textContent = data.day ? `Every ${data.day}` : 'N/A';
 
         // Time
         if (data.startTime && data.endTime) {
@@ -583,6 +552,7 @@ async function searchBooking() {
         document.getElementById('bookingCard').style.display = 'block';
     }
 
+    // Show error message
     function showError(message) {
         const errorEl = document.getElementById('errorMessage');
         errorEl.textContent = message;
