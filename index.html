@@ -268,12 +268,12 @@
     </div>
 
     <div class="search-card">
-        <h2>Enter Booking ID</h2>
+        <h2>Enter Booking ID (Manual Backup)</h2>
         <div class="search-box">
             <input type="text" id="bookingId" placeholder="e.g., 123456..." value="">
             <button onclick="searchBooking()" id="searchBtn">Verify Booking</button>
         </div>
-        <p style="color: #666; font-size: 0.9em;">You can also scan the QR code to auto-fill</p>
+        <p style="color: #666; font-size: 0.9em;">⬆️ Only use this if QR code scan doesn't work</p>
     </div>
 
     <div class="error-message" id="errorMessage"></div>
@@ -359,12 +359,6 @@
 </div>
 
 <script>
-    // Get booking ID from URL if present
-    function getUrlParameter(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
-    }
-
     // Firebase configuration
     const firebaseConfig = {
         apiKey: "AIzaSyBfqQ7g-6sVESqtDK36CUe1H27WT1H7ZlM",
@@ -380,25 +374,59 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Check for booking ID in URL on page load
+    // Get URL parameter
+    function getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+    // Auto-load booking when page loads with bookingId in URL
     window.onload = function() {
         const bookingId = getUrlParameter('bookingId');
-        if (bookingId && bookingId.length === 6 && /^\d+$/.test(bookingId)) {
-            // Valid 6-digit number found in URL
+        if (bookingId) {
+            // Auto-fill the input (for reference)
             document.getElementById('bookingId').value = bookingId;
-
-            // Show loading message
+            
+            // Show loading immediately
             document.getElementById('loading').style.display = 'block';
             document.getElementById('searchBtn').disabled = true;
-
-            // Auto-search after a short delay to ensure Firebase is ready
-            setTimeout(function() {
-                searchBooking();
+            
+            // Short delay to ensure Firebase is ready
+            setTimeout(() => {
+                // Call search function directly with this booking ID
+                searchBookingWithId(bookingId);
             }, 500);
         }
     };
 
-    // Search for booking
+    // Search with specific ID (for auto-load)
+    async function searchBookingWithId(bookingId) {
+        try {
+            // Try monthly_bookings first
+            let doc = await db.collection('monthly_bookings').doc(bookingId).get();
+
+            // If not found, try regular bookings
+            if (!doc.exists) {
+                doc = await db.collection('bookings').doc(bookingId).get();
+            }
+
+            if (doc.exists) {
+                displayBooking(doc.id, doc.data());
+                document.getElementById('loading').style.display = 'none';
+            } else {
+                showError('Booking not found. Please try manual entry.');
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('searchBtn').disabled = false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Error loading booking. Please try manual entry.');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('searchBtn').disabled = false;
+        }
+    }
+
+    // Manual search function (called by button)
     async function searchBooking() {
         const bookingId = document.getElementById('bookingId').value.trim();
 
@@ -407,13 +435,13 @@
             return;
         }
 
-        // Validate it's a 6-digit number
+        // Validate 6-digit format
         if (!/^\d{6}$/.test(bookingId)) {
             showError('Booking ID must be a 6-digit number');
             return;
         }
 
-        // Show loading, hide previous results
+        // Show loading
         document.getElementById('loading').style.display = 'block';
         document.getElementById('bookingCard').style.display = 'none';
         document.getElementById('errorMessage').style.display = 'none';
@@ -462,31 +490,18 @@
         document.getElementById('turfName').textContent = data.turfName || 'N/A';
         document.getElementById('bookingIdDisplay').textContent = `ID: ${id}`;
         document.getElementById('teamName').textContent = data.teamName || 'N/A';
-
-        // Ground number
         document.getElementById('groundNumber').textContent = data.groundNumber || 'N/A';
-
-        // Location
-        document.getElementById('location').textContent =
-            `${data.turfCity || ''}, ${data.turfArea || ''}`;
-
-        // Schedule
+        document.getElementById('location').textContent = `${data.turfCity || ''}, ${data.turfArea || ''}`;
         document.getElementById('schedule').textContent = data.day ? `Every ${data.day}` : 'N/A';
-
-        // Time
+        
         if (data.startTime && data.endTime) {
             document.getElementById('time').textContent = `${data.startTime} - ${data.endTime}`;
         } else {
             document.getElementById('time').textContent = 'N/A';
         }
 
-        // Duration
-        document.getElementById('duration').textContent =
-            data.durationHours ? `${data.durationHours} hours` : 'N/A';
-
-        // Total sessions
-        document.getElementById('totalSessions').textContent =
-            data.numberOfSessions || (data.bookingDates ? data.bookingDates.length : 'N/A');
+        document.getElementById('duration').textContent = data.durationHours ? `${data.durationHours} hours` : 'N/A';
+        document.getElementById('totalSessions').textContent = data.numberOfSessions || (data.bookingDates ? data.bookingDates.length : 'N/A');
 
         // Booked dates
         const datesContainer = document.getElementById('datesContainer');
@@ -510,26 +525,21 @@
                 });
                 datesContainer.appendChild(dateDiv);
             });
-        } else {
-            datesContainer.innerHTML = '<p>No dates available</p>';
         }
 
         // Payment details
-        document.getElementById('totalAmount').textContent =
-            `KES ${(data.totalAmount || 0).toFixed(2)}`;
+        document.getElementById('totalAmount').textContent = `KES ${(data.totalAmount || 0).toFixed(2)}`;
 
         const paymentStatus = data.paymentStatus || 'pending';
         const statusElement = document.getElementById('paymentStatus');
         statusElement.innerHTML = `<span class="payment-status ${paymentStatus === 'paid' ? 'status-paid' : 'status-pending'}">${paymentStatus.toUpperCase()}</span>`;
 
-        document.getElementById('paidAmount').textContent =
-            `KES ${(data.paidAmount || data.totalAmount || 0).toFixed(2)}`;
+        document.getElementById('paidAmount').textContent = `KES ${(data.paidAmount || data.totalAmount || 0).toFixed(2)}`;
 
         // Discount
         if (data.discountSavings && data.discountSavings > 0) {
             document.getElementById('discountRow').style.display = 'flex';
-            document.getElementById('discountSavings').textContent =
-                `KES ${data.discountSavings.toFixed(2)}`;
+            document.getElementById('discountSavings').textContent = `KES ${data.discountSavings.toFixed(2)}`;
         } else {
             document.getElementById('discountRow').style.display = 'none';
         }
@@ -544,12 +554,13 @@
 
         // Booking date
         if (data.createdAt) {
-            document.getElementById('bookingDate').textContent =
-                `Booked on: ${formatDate(data.createdAt)}`;
+            document.getElementById('bookingDate').textContent = `Booked on: ${formatDate(data.createdAt)}`;
         }
 
-        // Show the booking card
+        // Hide loading, show booking card
+        document.getElementById('loading').style.display = 'none';
         document.getElementById('bookingCard').style.display = 'block';
+        document.getElementById('search-card').style.display = 'none'; // Optional: hide search after success
     }
 
     // Show error message
